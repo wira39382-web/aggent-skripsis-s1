@@ -1,0 +1,123 @@
+%% ALUR AGENT SKRIPSI KUANTITATIF — REVISI 2
+%% Tujuan: paket siap ditinjau, bukan persetujuan akademik otomatis.
+%% KONTRAK IMPLEMENTASI (komentar ini bagian spesifikasi Codex):
+%% 1. Inventaris bersifat multi-status: proposal, data, analisis, dan naskah
+%%    dapat tersedia sekaligus. Urutan diagram adalah dependensi pemeriksaan;
+%%    hasil lama yang masih berlaku boleh digunakan tanpa mengulang kerja.
+%% 2. V1 mendukung survei kuesioner dan modul analisis yang telah tervalidasi.
+%%    Router mengenali eksperimen/data sekunder tetapi memerlukan workflow
+%%    khusus atau handoff; jangan memaksakan prosedur survei pada metode lain.
+%% 3. SETIAP tahap memiliki audit lokal: input/output_version, evidence_ids,
+%%    keputusan, pemeriksaan teknis/metodologis/akademik dan issue_id tercatat.
+%%    Hasil audit: memadai, perlu revisi, belum dapat dinilai, atau tidak relevan
+%%    dengan alasan. Kegagalan alat bukan hasil negatif penelitian.
+%%    Node kerja hanya meneruskan keluaran yang lolos audit lokal; gerbang
+%%    utama ditampilkan eksplisit. Audit lokal gagal masuk RETRY.
+%% 4. RETRY berlaku untuk seluruh perbaikan termasuk revisi pembimbing.
+%%    Maksimum awal 3 upaya per isu, ditambah batas waktu/biaya/stagnasi.
+%%    Angka 3 adalah konfigurasi produk, bukan ketentuan akademik.
+%%    Simpan origin_stage dan issue_id; mengganti nama isu tidak mereset batas.
+%%    Eskalasi menghentikan tugas terdampak, bukan seluruh pekerjaan independen.
+%%    Resume membutuhkan keputusan tercatat dan anggaran baru bila batas habis.
+%%    BACK memilih SATU tujuan sesuai isu, bukan menjalankan semua cabang.
+%% 5. Simpan status sumber ditemukan/dibaca/mendukung klaim secara terpisah.
+%%    Verifikasi metadata melalui Crossref/penerbit/registri relevan; hasil
+%%    kosong tidak membuktikan referensi palsu. Bukti semantik diperiksa dari
+%%    teks, tabel, dan konteks, bukan DOI saja. Bedakan halaman PDF dan tercetak.
+%%    Kegagalan OCR atau akses full text ditandai. Gaya sitasi sesuai pedoman.
+%% 6. Rancangan mencatat definisi, hipotesis, sampling dan dasar ukuran sampel:
+%%    tujuan, presisi/daya bila sesuai, asumsi, model, nonrespons, dan kelayakan.
+%%    Jangan memakai satu rumus universal. Hipotesis setelah hasil diketahui
+%%    diberi status eksploratif; jangan merekayasa riwayat keputusan prospektif.
+%% 7. Uji coba memakai protokol/persetujuan yang sesuai sebelum merekrut peserta.
+%%    Persetujuan proposal/seminar, izin, persetujuan responden, perlindungan
+%%    data, dan aturan AI berlaku sesuai ketentuan yang benar-benar diverifikasi.
+%%    Gerbang HUMAN menyimpan bukti dan aktor pemberi persetujuan; persetujuan
+%%    pengguna tidak dianggap persetujuan pembimbing. Data lama diperiksa
+%%    kelayakan penggunaannya; jangan mengarang izin atau persetujuan historis.
+%% 8. PLAN membekukan satu versi, bukan melarang perubahan. Amandemen menyimpan
+%%    alasan/waktu/keterpaparan hasil. Data tambahan membutuhkan alasan ilmiah,
+%%    aturan penghentian dan persetujuan relevan, bukan mengejar signifikansi.
+%% 9. Modul analisis mencatat estimator, versi perangkat, parameter, seed,
+%%    penanganan missing dan benchmark dengan jawaban pembanding terverifikasi.
+%%    Cocokkan pengaturan sebelum membandingkan perangkat. Python/R tidak
+%%    dilabeli sebagai keluaran asli SPSS/SmartPLS. Format bukan bukti kesetaraan.
+%%    Modul gagal benchmark dinonaktifkan; metode yang belum didukung memerlukan
+%%    handoff/pengembangan, bukan penggantian metode demi keterbatasan aplikasi.
+%% 10. Diagnostik bermasalah memerlukan penilaian dampak dan penanganan; tidak
+%%     otomatis membenarkan penghapusan indikator/responden atau ganti metode.
+%%     Data asli tidak ditimpa; transformasi baru membuat versi baru.
+%%     Perubahan menandai hasil turunannya stale: tabel, paragraf, kesimpulan.
+%% 11. Pemeriksaan menggabungkan aturan program, bukti, benchmark, dan manusia.
+%%     Model pemeriksa bukan otoritas tunggal. Kode berhasil bukan analisis tepat.
+%%     Status siap ditinjau memerlukan tidak ada isu kritis terbuka dan keluaran
+%%     sesuai versi sumber/data terkini. Draf belum lolos boleh diekspor berlabel.
+%% 12. Simpan log penggunaan AI: tugas, model/versi jika tersedia, hasil, revisi.
+%%     Sidang melatih pemahaman keputusan, bukan hafalan untuk menutupi kekurangan.
+%%     Pengesahan akhir hanya dicatat berdasarkan bukti keputusan yang diberikan.
+
+flowchart TD
+    START["Inventaris proyek dan versi dokumen"] --> RULES["Verifikasi pedoman, aturan AI, dan kebutuhan perangkat"]
+    RULES --> TYPE{"Jenis penelitian didukung?"}
+    TYPE -->|Survei yang didukung| HISTORY["Audit kondisi campuran dan riwayat akses data"]
+    TYPE -->|Eksperimen atau data sekunder| SCOPE["Tetapkan workflow khusus atau handoff"]
+    TYPE -->|Belum jelas| ESC["Tunda tugas terkait dan minta keputusan"]
+    SCOPE --> ESC
+
+    HISTORY --> LIT["Cari, baca, verifikasi, dan sintesis literatur"]
+    LIT --> GL{"Gerbang bukti literatur"}
+    GL -->|Memadai| DESIGN["Audit Bab I-III, model, sampling, dan ukuran sampel"]
+    GL -->|Revisi atau bukti kurang| RETRY{"Batas upaya dan progres"}
+    DESIGN --> GD{"Gerbang kelayakan rancangan"}
+    GD -->|Lolos| EXIST{"Data utama sudah tersedia?"}
+    GD -->|Belum| RETRY
+
+    EXIST -->|Belum| INST["Susun instrumen dan protokol uji coba"]
+    INST --> HP{"Persetujuan uji coba sesuai ketentuan?"}
+    HP -->|Ya atau tidak relevan beralasan| PILOT["Uji coba dan evaluasi instrumen bila diperlukan"]
+    HP -->|Belum| ESC
+    PILOT --> GI{"Gerbang kesiapan instrumen"}
+    GI -->|Lolos| PLAN["Tetapkan versi rencana analisis utama"]
+    GI -->|Perlu perbaikan| RETRY
+    EXIST -->|Ya| ORIGIN["Audit instrumen, asal, izin, dan keterpaparan hasil"]
+    ORIGIN --> GO{"Gerbang kelayakan penggunaan data"}
+    GO -->|Lolos| PLAN
+    GO -->|Belum| RETRY
+
+    PLAN --> HUMAN{"Gerbang manusia dan kelengkapan prosedur"}
+    HUMAN -->|Belum lengkap| ESC
+    HUMAN -->|Disetujui sesuai kebutuhan| NEED{"Perlu pengumpulan data?"}
+    NEED -->|Ya, baru atau tambahan beralasan| COLLECT["Kumpulkan data nyata sesuai rencana"]
+    NEED -->|Tidak| CLEAN["Audit data, buku kode, dan transformasi tercatat"]
+    COLLECT --> CLEAN
+    CLEAN --> GC{"Gerbang kesiapan data"}
+    GC -->|Lolos| ENGINE{"Modul metode tersedia dan lulus benchmark?"}
+    GC -->|Belum| RETRY
+    ENGINE -->|Ya| RUN["Jalankan analisis dan diagnostik"]
+    ENGINE -->|Tidak| HANDOFF["Handoff analisis atau perbaikan modul"]
+    HANDOFF --> ESC
+    RUN --> GA{"Gerbang perhitungan dan interpretasi"}
+    GA -->|Memadai| WRITE["Susun Bab IV-V, abstrak, dan sinkronkan naskah"]
+    GA -->|Perlu penanganan| RETRY
+    WRITE --> AUDIT{"Audit bukti, bahasa, angka, dan format"}
+    AUDIT -->|Belum memadai| RETRY
+    AUDIT -->|Lolos| EXPORT["Ekspor paket dan periksa tampilan"]
+    EXPORT --> REVIEW{"Hasil tinjauan pembimbing"}
+    REVIEW -->|Revisi| RETRY
+    REVIEW -->|Belum tersedia| WAIT["Menunggu tinjauan; latihan dapat dimulai"]
+    REVIEW -->|Lanjut sesuai keputusan| DEFENSE["Persiapan sidang dan pemeriksaan pemahaman"]
+    WAIT -.->|Tinjauan diterima| REVIEW
+    WAIT -.->|Latihan saja| LEARN["Latihan penjelasan metode dan hasil"]
+    DEFENSE --> EXAM{"Sidang dan keputusan penguji"}
+    EXAM -->|Perlu revisi| RETRY
+    EXAM -->|Selesai sesuai bukti keputusan| ARCHIVE["Arsip versi disetujui dan paket reproduksi"]
+
+    RETRY -->|Masih dalam batas dan dapat diperbaiki| BACK{"Pilih tahap terdampak"}
+    RETRY -->|Batas habis, stagnan, atau keputusan manusia| ESC
+    ESC -->|Klarifikasi ruang lingkup atau aturan| RULES
+    ESC -->|Keputusan perbaikan dan syarat lanjut tercatat| BACK
+    BACK -->|Bukti atau rancangan| LIT
+    BACK -->|Instrumen sebelum data utama| INST
+    BACK -->|Amandemen metode atau data tambahan| PLAN
+    BACK -->|Asal data, pengolahan, atau eksekusi| ORIGIN
+    BACK -->|Penulisan atau format| WRITE
