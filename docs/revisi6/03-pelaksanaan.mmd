@@ -1,0 +1,93 @@
+%% Revisi 6 — dihasilkan dari scripts/render_workflow_v6.py
+%% Kontrak wajib: docs/revisi6/spesifikasi.md; panah silang memakai checkpoint dan versi.
+flowchart TD
+    START["Inventaris data, instrumen, hasil eksternal dan keterpaparan hasil"]
+    class START work
+    EXIST{"Data untuk tujuan ini sudah tersedia?"}
+    class EXIST gate
+    ORIGIN["Audit asal, akses, persetujuan dan mutu data lama"]
+    class ORIGIN work
+    GO{"Data layak digunakan untuk tujuan ini?"}
+    class GO gate
+    INSTR["Susun instrumen dan protokol sesuai rancangan"]
+    class INSTR work
+    PNEED{"Uji coba diperlukan?"}
+    class PNEED gate
+    PPERM{"Persetujuan uji coba yang diwajibkan tersedia?"}
+    class PPERM gate
+    PILOT["Uji coba nyata dan evaluasi instrumen sesuai protokol"]
+    class PILOT work
+    GI{"Instrumen layak; alasan dan bukti cukup?"}
+    class GI gate
+    PLAN["Versikan rencana; catat asumsi dan keterpaparan hasil; jangan mundurkan tanggal"]
+    class PLAN work
+    NEED{"Perlu pengumpulan data baru/tambahan?"}
+    class NEED gate
+    PERMIT{"Syarat kegiatan dan aturan penghentian terpenuhi?"}
+    class PERMIT gate
+    COLLECT["Kumpulkan data nyata; simpan asal dan bukti prosedur"]
+    class COLLECT work
+    CLEAN["Raw tetap; audit buku kode, missing dan transformasi menjadi versi baru"]
+    class CLEAN work
+    GC{"Data siap untuk analisis yang dipilih?"}
+    class GC gate
+    MODE{"Sumber perhitungan yang digunakan?"}
+    class MODE gate
+    ENGINE{"Modul metode didukung dan lulus benchmark relevan?"}
+    class ENGINE gate
+    RUN["Eksekusi; rekam versi, estimator, parameter dan diagnostik"]
+    class RUN work
+    IMPORT["Impor hasil eksternal; audit perangkat, pengaturan dan provenance"]
+    class IMPORT work
+    GA{"Perhitungan dan interpretasi memadai untuk klaim?"}
+    class GA gate
+    WRITE(["Hasil sah; tulis naskah berbukti lalu paket akhir — diagram 04"])
+    class WRITE terminal
+    HANDOFF["Handoff metode; jangan mengganti rancangan demi alat"]
+    class HANDOFF hold
+    WAIT["Tahan kegiatan terkait; minta bukti/izin/keputusan yang tepat"]
+    class WAIT hold
+    RETRY(["Isu ke diagram 01; amandemen tercatat dan turunan usang"])
+    class RETRY terminal
+    START --> EXIST
+    EXIST -->|"Ya"| ORIGIN
+    EXIST -->|"Belum"| INSTR
+    ORIGIN --> GO
+    GO -->|"Ya"| PLAN
+    GO -->|"Belum / tidak layak"| WAIT
+    INSTR --> PNEED
+    PNEED -->|"Ya"| PPERM
+    PNEED -->|"Tidak relevan dengan alasan"| GI
+    PNEED -->|"Belum diketahui"| WAIT
+    PPERM -->|"Ya / tidak diwajibkan dengan dasar"| PILOT
+    PPERM -->|"Belum"| WAIT
+    PILOT --> GI
+    GI -->|"Ya"| PLAN
+    GI -->|"Perlu revisi"| RETRY
+    GI -->|"Bukti kurang"| WAIT
+    PLAN --> NEED
+    NEED -->|"Ya: alasan ilmiah tercatat"| PERMIT
+    NEED -->|"Tidak"| CLEAN
+    PERMIT -->|"Ya"| COLLECT
+    PERMIT -->|"Belum"| WAIT
+    COLLECT --> CLEAN
+    CLEAN --> GC
+    GC -->|"Ya"| MODE
+    GC -->|"Perlu revisi"| RETRY
+    GC -->|"Belum dapat dinilai"| WAIT
+    MODE -->|"Dihitung oleh modul aplikasi"| ENGINE
+    MODE -->|"Keluaran eksternal yang tersedia"| IMPORT
+    ENGINE -->|"Ya"| RUN
+    ENGINE -->|"Tidak / alat belum tersedia"| HANDOFF
+    HANDOFF --> WAIT
+    RUN --> GA
+    IMPORT --> GA
+    GA -->|"Memadai: hasil tidak signifikan boleh sah"| WRITE
+    GA -->|"Kesalahan / penanganan perlu revisi"| RETRY
+    GA -->|"Bukti/capability kurang"| WAIT
+    WAIT -->|"Prasyarat berubah; gunakan ulang keluaran sah"| START
+    classDef work fill:#edf4ed,stroke:#6c8977,color:#193b33
+    classDef gate fill:#fcf0d8,stroke:#b29355,color:#193b33
+    classDef hold fill:#fae9e4,stroke:#b67c6c,color:#193b33
+    classDef terminal fill:#e4edf9,stroke:#728caa,color:#193b33
+    classDef join fill:#e9e3f4,stroke:#9381ac,color:#193b33

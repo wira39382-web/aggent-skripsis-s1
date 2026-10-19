@@ -1,0 +1,98 @@
+%% Revisi 6 — dihasilkan dari scripts/render_workflow_v6.py
+%% Kontrak wajib: docs/revisi6/spesifikasi.md; panah silang memakai checkpoint dan versi.
+flowchart TD
+    INPUT["Masukan yang tersedia dan versi: ide, literatur atau proposal"]
+    class INPUT work
+    ENOUGH{"Bahan minimum untuk tugas ini dapat dinilai?"}
+    class ENOUGH gate
+    INTENT["Ringkas maksud, cakupan, ketidakpastian dan keputusan lama"]
+    class INTENT work
+    CONFIRM{"Pengguna mengonfirmasi maksud substantif?"}
+    class CONFIRM gate
+    FORK["Audit pada snapshot yang sama; AND split"]
+    class FORK join
+    A1["Aturan, struktur dan sumber ketentuan"]
+    class A1 work
+    A2["Masalah, gap dan keselarasan tujuan"]
+    class A2 work
+    A3["Literatur, konteks dan dukungan klaim"]
+    class A3 work
+    A4["Desain, sampel, pengukuran dan analisis"]
+    class A4 work
+    A5["Etik, izin, privasi dan kelayakan"]
+    class A5 work
+    JOIN{"Semua audit relevan selesai pada versi yang sama?"}
+    class JOIN gate
+    FIND["Gabungkan status, bukti, isu penghambat dan dependensi"]
+    class FIND work
+    CORE{"Perlu keputusan arah inti?"}
+    class CORE gate
+    OPTIONS["Tawarkan opsi, konsekuensi dan aktor yang perlu memutuskan"]
+    class OPTIONS work
+    DECISION{"Keputusan substantif tersedia dan tercatat?"}
+    class DECISION gate
+    FIX["Perbaiki hanya target terdampak; Bab I–III mengikuti dependensi"]
+    class FIX work
+    FEASIBLE["Periksa bukti dan uji relevan; dry run tidak menjadi hasil nyata"]
+    class FEASIBLE work
+    LOCAL{"Gerbang target memadai?"}
+    class LOCAL gate
+    CROSS["Periksa matriks lintas bab dan sanggahan berbukti"]
+    class CROSS work
+    FINAL{"Semua gerbang wajib mutakhir; tanpa isu penghambat?"}
+    class FINAL gate
+    EXPLAIN["Jelaskan alasan, bukti, alternatif dan batas dengan sumber"]
+    class EXPLAIN work
+    UNDERSTAND{"Keputusan utama dipahami?"}
+    class UNDERSTAND gate
+    HELP["Bimbing area belum dipahami; latihan dalam budget"]
+    class HELP work
+    READY(["Proposal siap ditinjau — lanjut diagram 04"])
+    class READY terminal
+    RETRY(["Isu kembali ke kendali budget dan target — diagram 01"])
+    class RETRY terminal
+    WAIT["Minta bahan/keputusan yang kurang; tahan hanya tugas terkait"]
+    class WAIT hold
+    INPUT --> ENOUGH
+    ENOUGH -->|"Ya"| INTENT
+    ENOUGH -->|"Belum"| WAIT
+    INTENT --> CONFIRM
+    CONFIRM -->|"Sesuai"| FORK
+    CONFIRM -->|"Belum sesuai / belum dijawab"| WAIT
+    FORK --> A1
+    FORK --> A2
+    FORK --> A3
+    FORK --> A4
+    FORK --> A5
+    A1 --> JOIN
+    A2 --> JOIN
+    A3 --> JOIN
+    A4 --> JOIN
+    A5 --> JOIN
+    JOIN -->|"Ya: status lengkap, bukan otomatis lolos"| FIND
+    JOIN -->|"Belum / versi berubah"| WAIT
+    FIND --> CORE
+    CORE -->|"Ya"| OPTIONS
+    CORE -->|"Tidak"| FIX
+    OPTIONS --> DECISION
+    DECISION -->|"Ada: perbarui arah dan versi"| INPUT
+    DECISION -->|"Belum"| WAIT
+    FIX -->|"Lewati keluaran yang tetap sah"| FEASIBLE
+    FEASIBLE --> LOCAL
+    LOCAL -->|"Memadai"| CROSS
+    LOCAL -->|"Perlu revisi"| RETRY
+    LOCAL -->|"Belum dapat dinilai"| WAIT
+    CROSS --> FINAL
+    FINAL -->|"Ya"| EXPLAIN
+    FINAL -->|"Tidak"| RETRY
+    EXPLAIN --> UNDERSTAND
+    UNDERSTAND -->|"Ya: bukan tes hafalan"| READY
+    UNDERSTAND -->|"Sebagian: budget tersedia"| HELP
+    UNDERSTAND -->|"Budget habis / isu substantif"| RETRY
+    HELP -->|"Setelah penjelasan bermakna"| EXPLAIN
+    WAIT -->|"Masukan/prasyarat berubah"| INPUT
+    classDef work fill:#edf4ed,stroke:#6c8977,color:#193b33
+    classDef gate fill:#fcf0d8,stroke:#b29355,color:#193b33
+    classDef hold fill:#fae9e4,stroke:#b67c6c,color:#193b33
+    classDef terminal fill:#e4edf9,stroke:#728caa,color:#193b33
+    classDef join fill:#e9e3f4,stroke:#9381ac,color:#193b33

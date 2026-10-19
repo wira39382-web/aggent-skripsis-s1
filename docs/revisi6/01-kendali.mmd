@@ -1,0 +1,66 @@
+%% Revisi 6 — dihasilkan dari scripts/render_workflow_v6.py
+%% Kontrak wajib: docs/revisi6/spesifikasi.md; panah silang memakai checkpoint dan versi.
+flowchart TD
+    START["Inventaris ide, proposal, dokumen, data, hasil dan keputusan"]
+    class START work
+    RULES["Petakan aturan, kewenangan, capability dan tujuan saat ini"]
+    class RULES work
+    QUEUE["Susun tugas menurut dependensi; gunakan ulang versi yang masih sah"]
+    class QUEUE work
+    NEXT{"Ada tugas siap dan diperlukan?"}
+    class NEXT gate
+    TASK["Pilih satu tugas: literatur, proposal, data, analisis atau naskah"]
+    class TASK work
+    WORK["Kerjakan pada snapshot input; catat sumber, proses dan biaya"]
+    class WORK work
+    CHECK{"Hasil audit lokal?"}
+    class CHECK gate
+    SAVE["Simpan versi dan bukti; tandai turunan terdampak usang"]
+    class SAVE work
+    READY{"Tujuan paket saat ini siap ditinjau?"}
+    class READY gate
+    PACK["Ekspor dan keputusan per fase — diagram 04"]
+    class PACK work
+    DONE(["Paket dan status aktual tersimpan; bukan persetujuan otomatis"])
+    class DONE terminal
+    ISSUE["Catat isu stabil, akar masalah dan kriteria selesai"]
+    class ISSUE work
+    BUDGET{"Upaya otomatis masih beralasan dan dalam budget?"}
+    class BUDGET gate
+    TARGET["Pilih satu target terdampak; jangan reset riwayat isu"]
+    class TARGET work
+    DIAG["Diagnosis teknis; kegagalan alat bukan temuan penelitian"]
+    class DIAG work
+    HOLD["Jeda tugas terkait; lanjutkan tugas independen yang siap"]
+    class HOLD hold
+    ESC["Minta keputusan atau budget baru; simpan state"]
+    class ESC hold
+    START --> RULES
+    RULES --> QUEUE
+    QUEUE --> NEXT
+    NEXT -->|"Ada"| TASK
+    NEXT -->|"Tidak ada tugas tersisa"| READY
+    NEXT -->|"Tugas tersisa tetapi prasyarat terblokir"| HOLD
+    TASK --> WORK
+    WORK --> CHECK
+    CHECK -->|"Memadai / tidak relevan beralasan"| SAVE
+    CHECK -->|"Perlu revisi"| ISSUE
+    CHECK -->|"Alat gagal"| DIAG
+    CHECK -->|"Belum dapat dinilai"| HOLD
+    DIAG --> ISSUE
+    SAVE --> READY
+    READY -->|"Ya: gerbang scope terpenuhi"| PACK
+    READY -->|"Belum: tugas baru yang dapat dikerjakan teridentifikasi"| QUEUE
+    READY -->|"Belum: syarat/bukti yang diperlukan belum jelas"| HOLD
+    PACK --> DONE
+    ISSUE --> BUDGET
+    BUDGET -->|"Ya, ada diagnosis/perubahan berarti"| TARGET
+    BUDGET -->|"Tidak / perlu keputusan manusia"| ESC
+    TARGET --> QUEUE
+    HOLD -->|"Tugas independen siap atau prasyarat berubah"| QUEUE
+    ESC -->|"Keputusan dan budget baru tercatat"| QUEUE
+    classDef work fill:#edf4ed,stroke:#6c8977,color:#193b33
+    classDef gate fill:#fcf0d8,stroke:#b29355,color:#193b33
+    classDef hold fill:#fae9e4,stroke:#b67c6c,color:#193b33
+    classDef terminal fill:#e4edf9,stroke:#728caa,color:#193b33
+    classDef join fill:#e9e3f4,stroke:#9381ac,color:#193b33

@@ -1,0 +1,103 @@
+%% Revisi 6 — dihasilkan dari scripts/render_workflow_v6.py
+%% Kontrak wajib: docs/revisi6/spesifikasi.md; panah silang memakai checkpoint dan versi.
+flowchart TD
+    TYPE{"Jenis paket yang dituju?"}
+    class TYPE gate
+    PG{"Proposal: gerbang internal dan versi sudah memadai?"}
+    class PG gate
+    PE["Ekspor proposal dengan manifest versi"]
+    class PE work
+    PV{"Tampilan dan kelengkapan proposal benar?"}
+    class PV gate
+    PR{"Tinjauan proposal tersedia dan mengizinkan langkah berikut?"}
+    class PR gate
+    PS{"Seminar proposal diwajibkan menurut aturan terverifikasi?"}
+    class PS gate
+    PSE["Seminar proposal; catat keputusan aktual dan versinya"]
+    class PSE work
+    PD{"Keputusan proposal untuk versi ini?"}
+    class PD gate
+    PA(["Milestone proposal disetujui; cek izin kegiatan secara terpisah"])
+    class PA terminal
+    PW["Menunggu aturan/keputusan proposal; latihan boleh berjalan"]
+    class PW hold
+    PRESUME{"Checkpoint proposal yang tertunda menurut isu?"}
+    class PRESUME gate
+    FG{"Akhir: gerbang internal dan versi sudah memadai?"}
+    class FG gate
+    FE["Ekspor naskah dan paket reproduksi sesuai akses"]
+    class FE work
+    FV{"Tampilan dan kelengkapan paket akhir benar?"}
+    class FV gate
+    FR{"Tinjauan akhir tersedia dan syarat sidang terpenuhi?"}
+    class FR gate
+    EXAM["Sidang akhir; catat bukti keputusan penguji"]
+    class EXAM work
+    FD{"Keputusan sidang akhir?"}
+    class FD gate
+    FIX["Selesaikan revisi akhir; pertahankan versi dan isu"]
+    class FIX work
+    VER{"Revisi diterima pihak berwenang untuk versi ini?"}
+    class VER gate
+    FINAL{"Seluruh syarat final dan bukti pengesahan versi cocok?"}
+    class FINAL gate
+    ARCHIVE(["Arsip versi final disetujui beserta bukti dan paket reproduksi"])
+    class ARCHIVE terminal
+    FW["Menunggu bukti/keputusan akhir; jangan mengarang pengesahan"]
+    class FW hold
+    FRESUME{"Checkpoint akhir yang tertunda menurut isu?"}
+    class FRESUME gate
+    RETRY(["Catat isu; kembali ke satu target lewat diagram 01"])
+    class RETRY terminal
+    DRAFT(["Boleh ekspor draf berlabel belum lolos jika akses sah"])
+    class DRAFT terminal
+    TYPE -->|"Proposal"| PG
+    TYPE -->|"Skripsi akhir"| FG
+    PG -->|"Ya"| PE
+    PG -->|"Belum"| DRAFT
+    PE --> PV
+    PV -->|"Ya"| PR
+    PV -->|"Tidak"| RETRY
+    PR -->|"Ya"| PS
+    PR -->|"Perlu revisi"| RETRY
+    PR -->|"Belum diketahui/tersedia"| PW
+    PS -->|"Ya"| PSE
+    PS -->|"Tidak: ada dasar aturan"| PD
+    PS -->|"Aturan belum jelas"| PW
+    PSE --> PD
+    PD -->|"Disetujui sesuai bukti"| PA
+    PD -->|"Revisi / belum disetujui"| RETRY
+    PD -->|"Keputusan belum tersedia"| PW
+    PW -->|"Aturan/keputusan baru tercatat"| PRESUME
+    PRESUME -->|"Tinjauan pembimbing"| PR
+    PRESUME -->|"Aturan seminar"| PS
+    PRESUME -->|"Keputusan proposal yang sudah diproses"| PD
+    FG -->|"Ya"| FE
+    FG -->|"Belum"| DRAFT
+    FE --> FV
+    FV -->|"Ya"| FR
+    FV -->|"Tidak"| RETRY
+    FR -->|"Ya, sesuai aturan"| EXAM
+    FR -->|"Perlu revisi"| RETRY
+    FR -->|"Belum"| FW
+    EXAM --> FD
+    FD -->|"Lulus tanpa revisi yang diwajibkan"| FINAL
+    FD -->|"Lulus dengan revisi"| FIX
+    FD -->|"Belum lulus / perbaikan substantif"| RETRY
+    FD -->|"Bukti keputusan belum ada"| FW
+    FIX --> VER
+    VER -->|"Ya"| FINAL
+    VER -->|"Belum memadai"| RETRY
+    VER -->|"Belum dinilai"| FW
+    FINAL -->|"Ya"| ARCHIVE
+    FINAL -->|"Syarat/bukti belum lengkap"| FW
+    FW -->|"Bukti baru; jangan ulang kegiatan yang sudah sah"| FRESUME
+    FRESUME -->|"Syarat sebelum sidang"| FR
+    FRESUME -->|"Keputusan sidang yang sudah terjadi"| FD
+    FRESUME -->|"Verifikasi revisi akhir"| VER
+    FRESUME -->|"Kelengkapan pengesahan"| FINAL
+    classDef work fill:#edf4ed,stroke:#6c8977,color:#193b33
+    classDef gate fill:#fcf0d8,stroke:#b29355,color:#193b33
+    classDef hold fill:#fae9e4,stroke:#b67c6c,color:#193b33
+    classDef terminal fill:#e4edf9,stroke:#728caa,color:#193b33
+    classDef join fill:#e9e3f4,stroke:#9381ac,color:#193b33

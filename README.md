@@ -1,6 +1,6 @@
 # Ruang Skripsi — Asisten Skripsi S1
 
-Aplikasi pengembangan lokal untuk alur **proyek penelitian → unggah PDF jurnal → baca teks per halaman → analisis satu jurnal dengan bukti**. Diagram [revisi 3](docs/alur-agent-skripsi-revisi3.svg) adalah tujuan jangka panjang. Tahap ini belum membuat skripsi lengkap.
+Aplikasi pengembangan lokal untuk alur **proyek penelitian → unggah PDF jurnal → baca teks per halaman → analisis satu jurnal dengan bukti**. [Spesifikasi dan diagram revisi 6](docs/revisi6/README.md) memperkuat rancangan tujuan jangka panjang berdasarkan audit revisi 5. Ini adalah rancangan pengembangan, bukan daftar fitur yang sudah tersedia. Tahap ini belum membuat skripsi lengkap.
 
 ## Menjalankan
 
