@@ -26,3 +26,7 @@ Log pengguna pada Python 3.13.2 menunjukkan `ResourceWarning: unclosed database`
 Tiga tes regresi mempertahankan referensi koneksi agar kebocoran tidak tersembunyi oleh garbage collector: transaksi sukses, rollback karena exception, serta operasi penyimpanan normal. Ketiganya gagal sebelum perbaikan dan lulus setelah perbaikan; berkas database dapat dipindah/dihapus setelah operasi selesai. Verifikasi langsung pada Windows masih perlu dilakukan di komputer pengguna.
 
 Pemeriksaan tambahan pada Python 3.13.5 (Linux): 23 tes lulus dengan `-W error::ResourceWarning`. Ini memverifikasi siklus hidup koneksi pada seri Python yang dipakai pengguna, bukan pengujian langsung Windows.
+
+## Penerapan kode berdasarkan revisi 6
+
+Setelah audit diagram, alur jurnal mendapat tinjauan manusia per bagian, pemeriksaan fingerprint ekstraksi/analisis, integritas berkas PDF, dan riwayat append-only. Suite diperluas menjadi 37 tes, lulus pada Python 3.12.14 dan 3.13.5 di Linux. Pemeriksaan browser juga lulus. Koneksi AI nyata tetap belum diuji; fixture memakai mock berlabel. Pemetaan kontrak, migrasi, dan batas kemampuan ada di [implementasi jurnal revisi 6](revisi6/implementasi-jurnal.md).

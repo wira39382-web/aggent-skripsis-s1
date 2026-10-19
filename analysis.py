@@ -1,4 +1,5 @@
 """Server-side AI adapter. Quotes are checked mechanically; meaning still needs review."""
+import hashlib
 import json
 import os
 import re
@@ -45,6 +46,11 @@ def schema():
 
 def normalize(text):
     return re.sub(r'\s+', ' ', text).strip()
+
+
+def extraction_version(document):
+    content = json.dumps(document['extraction'], sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 
 def validate_result(raw, pages):
@@ -122,6 +128,8 @@ def analyze(document):
     key, model = settings()
     if not key:
         return 'not_configured', {'message': ai_status()['message']}
+    if document.get('source_integrity') != 'matched':
+        raise ValueError('PDF sumber hilang atau berubah. Pulihkan sumber atau unggah PDF sebagai dokumen baru.')
     pages = document['extraction']['pages']
     readable = [p for p in pages if p['status'] == 'read']
     if not readable:
@@ -133,7 +141,8 @@ def analyze(document):
     return 'needs_review', {
         'fields': fields, 'provider': 'OpenAI', 'model': actual_model, 'usage': usage,
         'prompt_version': PROMPT_VERSION, 'source_sha256': document['sha256'],
+        'extraction_sha256': extraction_version(document),
         'read_pages': [p['pdf_page'] for p in readable],
         'unread_pages': [p['pdf_page'] for p in pages if p['status'] != 'read'],
-        'message': 'Draf AI perlu ditinjau. Kecocokan kutipan diperiksa otomatis; dukungan makna belum diverifikasi manusia.',
+        'message': 'Draf AI. Kecocokan kutipan diperiksa otomatis; dukungan makna perlu ditinjau manusia.',
     }

@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlsplit
 
 from analysis import AnalysisError, ai_status, analyze
 from storage import ProjectStore
+from reviews import ReviewConflict
 
 MAX_UPLOAD = 15 * 1024 * 1024
 WORKERS = threading.BoundedSemaphore(2)
@@ -79,9 +80,9 @@ def make_handler(store):
                 raise ApiError(400, 'Isi permintaan tidak lengkap.')
             return content
 
-        def json_body(self):
+        def json_body(self, limit=4096):
             try:
-                payload = json.loads(self.body(4096, 'application/json'))
+                payload = json.loads(self.body(limit, 'application/json'))
             except (ValueError, UnicodeDecodeError):
                 raise ApiError(400, 'JSON tidak valid.') from None
             if not isinstance(payload, dict):
@@ -104,6 +105,8 @@ def make_handler(store):
                 self.reply(error.status, {'error': error.message})
             except LookupError as error:
                 self.reply(404, {'error': str(error)})
+            except ReviewConflict as error:
+                self.reply(409, {'error': str(error)})
             except ValueError as error:
                 self.reply(400, {'error': str(error)})
             except AnalysisError as error:
@@ -144,6 +147,9 @@ def make_handler(store):
         def post(self, path):
             if path == '/api/projects':
                 return self.reply(201, store.create(self.json_body().get('title')))
+            match = re.fullmatch(r'/api/documents/([\w-]+)/reviews', path)
+            if match:
+                return self.reply(201, store.save_review(match[1], self.json_body(32768)))
             match = re.fullmatch(r'/api/projects/([\w-]+)/documents', path)
             if match:
                 store.project(match[1])

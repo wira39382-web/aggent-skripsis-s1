@@ -39,7 +39,12 @@ Secara bawaan, database ada di `data/projects.sqlite3` dan PDF asli di `data/doc
 2. Unggah PDF jurnal. Pilih dokumen dan halaman untuk membaca teks. Unduh sumber asli untuk memeriksa tabel, kolom, atau urutan teks.
 3. Halaman tanpa teks diberi status **perlu OCR**, halaman gagal diberi penanda kegagalan. Aplikasi tidak mengklaim halaman tersebut telah dibaca.
 4. Jika AI dikonfigurasi, setujui pengiriman teks jurnal ke OpenAI lalu pilih **Analisis jurnal**. Hanya halaman terbaca yang dikirim; dokumen tidak dikirim sebelum tindakan ini.
-5. Tinjau tujuan, metode, sampel, temuan, dan keterbatasan. Setiap klaim harus punya kutipan dan nomor halaman PDF. Tombol bukti membuka halaman sumber. Informasi yang tidak ditemukan ditandai; hasil selalu merupakan **draf perlu ditinjau**.
+5. Tinjau tujuan, metode, sampel, temuan, dan keterbatasan. Setiap klaim harus punya kutipan dan nomor halaman PDF. Tombol bukti membuka halaman sumber. Informasi yang tidak ditemukan ditandai; hasil AI selalu disimpan sebagai draf.
+6. Isi **Tinjauan bukti oleh pengguna** untuk kelima bagian, nama peninjau, dan alasan. Pilih dukungan bukti, perlu revisi, atau belum dapat dinilai. Catatan ini tersimpan untuk ID analisis dan versi sumber tertentu; bukan persetujuan pembimbing atau identitas yang telah diverifikasi.
+
+Bagian yang tidak ditemukan hanya dapat ditandai telah diperiksa pada teks terbaca, bukan didukung sebagai temuan. Satu bagian perlu revisi membuat status keseluruhan perlu revisi; satu bagian belum dapat dinilai menahan status tinjauan lengkap. Jika ada halaman tidak terbaca, status tetap **tinjauan parsial**. Analisis ulang memerlukan tinjauan baru, dan seluruh riwayat dipertahankan.
+
+Database lama diperbarui secara aditif saat startup. Proyek/PDF/analisis lama tidak dihapus. Analisis lama tanpa fingerprint ekstraksi tetap dapat dibaca, tetapi perlu analisis ulang sebelum menerima catatan tinjauan versi baru. Unggahan PDF baru tetap merupakan dokumen terpisah; aplikasi belum menyediakan penggantian versi dokumen melalui UI.
 
 Status ekstraksi, checksum SHA-256, teks, halaman, waktu, model, versi prompt, cakupan halaman, dan riwayat analisis disimpan. PDF asli tetap utuh. Nomor halaman adalah urutan fisik PDF (mulai 1), **bukan** nomor tercetak. Artikel yang metadata penerbitnya belum diverifikasi tidak dianggap sudah diverifikasi hanya karena PDF berhasil dibaca.
 
@@ -67,7 +72,7 @@ Tidak ada analisis AI nyata yang diklaim telah diverifikasi pada lingkungan tanp
 
 Generator membuat PDF dua halaman berlabel **SYNTHETIC TEST DOCUMENT — NOT A REAL JOURNAL**. Ini bahan uji, bukan artikel atau hasil penelitian nyata. Halaman 1 memiliki tujuan, metode, dan sampel; halaman 2 memiliki temuan. Keterbatasan sengaja tidak disediakan sebagai hasil penelitian. Unggah PDF ini untuk menguji pembaca secara manual.
 
-Suite 23 pengujian mencakup alur HTTP dan penyimpanan, PDF rusak/terenkripsi, halaman kosong/parsial, batas ukuran/halaman, pemisahan dokumen proyek, persetujuan pengiriman teks, status tanpa AI, kontrak penyedia dengan mock, kutipan salah, dan riwayat analisis. Lihat [catatan validasi](docs/validasi-alur-pertama.md) untuk hasil dan batas pengujian.
+Suite 37 pengujian mencakup alur HTTP dan penyimpanan, PDF rusak/terenkripsi, halaman kosong/parsial, batas ukuran/halaman, pemisahan dokumen proyek, persetujuan pengiriman teks, status tanpa AI, kontrak penyedia dengan mock, kutipan salah, tinjauan manusia, konflik versi, migrasi database, dan riwayat analisis. Lihat [catatan validasi](docs/validasi-alur-pertama.md) dan [penerapan revisi 6](docs/revisi6/implementasi-jurnal.md) untuk hasil dan batas pengujian.
 
 Pemeriksaan browser opsional tersedia di `scripts/browser_smoke.py`. Pasang `playwright==1.62.0` ke environment pengujian dan sediakan Chromium sistem atau browser dari `python -m playwright install chromium`, lalu jalankan `python scripts/browser_smoke.py` dari checkout. Pengujian ini memakai database sementara dan AI tiruan, tanpa panggilan penyedia nyata; memeriksa lima bagian, status tidak ditemukan, tautan bukti, riwayat setelah reload, dan tampilan ponsel.
 
@@ -77,9 +82,10 @@ Pemeriksaan browser opsional tersedia di `scripts/browser_smoke.py`. Pasang `pla
 - `storage.py`: SQLite, PDF asli, dan versi hasil analisis.
 - `pdf_reader.py`: proses ekstraksi terpisah dengan batas waktu/sumber daya.
 - `analysis.py`: integrasi OpenAI di server, schema hasil, pemeriksaan kutipan.
+- `reviews.py`: keputusan tinjauan per bagian dan pemeriksaan snapshot sumber.
 - `index.html`, `app.js`, `style.css`: antarmuka tanpa framework atau build frontend.
 
-Struktur sederhana ini mempertahankan proyek yang sudah ada dan mudah diuji. Endpoint utama: `POST/GET /api/projects`, `POST/GET /api/projects/{id}/documents`, `GET /api/documents/{id}`, `GET /api/documents/{id}/pdf`, `POST /api/documents/{id}/analyze` (JSON `{"consent":true}`), serta `GET /api/ai/status`. Upload memakai body PDF langsung, `Content-Type: application/pdf`, dan header `X-Filename` yang di-encode URL; tidak memakai multipart.
+Struktur sederhana ini mempertahankan proyek yang sudah ada dan mudah diuji. Endpoint utama: `POST/GET /api/projects`, `POST/GET /api/projects/{id}/documents`, `GET /api/documents/{id}`, `GET /api/documents/{id}/pdf`, `POST /api/documents/{id}/analyze` (JSON `{"consent":true}`), `POST /api/documents/{id}/reviews`, serta `GET /api/ai/status`. Upload memakai body PDF langsung, `Content-Type: application/pdf`, dan header `X-Filename` yang di-encode URL; tidak memakai multipart. Review mengirim ID analisis, fingerprint PDF/ekstraksi, peninjau, catatan, serta keputusan kelima bagian. Formulir dengan versi lama ditolak HTTP 409.
 
 ## Batas kemampuan
 

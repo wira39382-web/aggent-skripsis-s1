@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from pdf_reader import extract_pdf
+from reviews import ReviewConflict, assess_review, review_state
 
 
 def now():
@@ -31,6 +32,9 @@ class ProjectStore:
                 CREATE TABLE IF NOT EXISTS analyses (
                     id TEXT PRIMARY KEY, document_id TEXT NOT NULL REFERENCES documents(id),
                     created_at TEXT NOT NULL, status TEXT NOT NULL, result TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS analysis_reviews (
+                    id TEXT PRIMARY KEY, analysis_id TEXT NOT NULL REFERENCES analyses(id),
+                    created_at TEXT NOT NULL, status TEXT NOT NULL, details TEXT NOT NULL);
             ''')
 
     @contextmanager
@@ -94,20 +98,43 @@ class ProjectStore:
 
     def document(self, document_id):
         with self.connect() as db:
+            db.execute('BEGIN')  # One consistent snapshot for source, analyses and reviews.
             row = db.execute('SELECT * FROM documents WHERE id=?', (document_id,)).fetchone()
-            history = db.execute('SELECT * FROM analyses WHERE document_id=? ORDER BY created_at DESC',
+            history = db.execute('SELECT * FROM analyses WHERE document_id=? ORDER BY rowid DESC',
                                  (document_id,)).fetchall()
+            reviews = db.execute(
+                'SELECT r.* FROM analysis_reviews r JOIN analyses a ON a.id=r.analysis_id '
+                'WHERE a.document_id=? ORDER BY r.rowid DESC', (document_id,)).fetchall()
         if row is None:
             raise LookupError('Dokumen tidak ditemukan.')
         doc = dict(row)
+        doc['source_integrity'] = self.source_integrity(doc)
         doc['extraction'] = json.loads(doc['extraction'])
         doc['analyses'] = [dict(r, result=json.loads(r['result'])) for r in history]
+        current_id = next((r['id'] for r in history if r['status'] == 'needs_review'), None)
+        for record in doc['analyses']:
+            record['reviews'] = [dict(r, details=json.loads(r['details']))
+                                 for r in reviews if r['analysis_id'] == record['id']]
+            record['review_state'] = review_state(record, doc, current_id)
         return doc
 
     def pdf_path(self, document_id):
         # Resolve by stored ID, never by an untrusted path component.
         document = self.document(document_id)
+        if document['source_integrity'] != 'matched':
+            raise ValueError('PDF sumber hilang atau berubah. Jangan gunakan berkas ini sebagai sumber asli.')
         return self.files / (document['id'] + '.pdf')
+
+    def source_integrity(self, document):
+        path = self.files / (document['id'] + '.pdf')
+        try:
+            if path.stat().st_size != document['size']:
+                return 'changed'
+            with path.open('rb') as stream:
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            return 'matched' if digest == document['sha256'] else 'changed'
+        except OSError:
+            return 'unavailable'
 
     def save_analysis(self, document_id, status, result):
         record = {'id': str(uuid4()), 'document_id': document_id, 'created_at': now(),
@@ -115,3 +142,25 @@ class ProjectStore:
         with self.connect() as db:
             db.execute('INSERT INTO analyses VALUES (:id,:document_id,:created_at,:status,:result)', record)
         return dict(record, result=result)
+
+    def save_review(self, document_id, payload):
+        with self.connect() as db:
+            # Serialize latest-version checks and append, including concurrent re-analysis.
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM documents WHERE id=?', (document_id,)).fetchone()
+            if row is None:
+                raise LookupError('Dokumen tidak ditemukan.')
+            row_analysis = db.execute(
+                "SELECT * FROM analyses WHERE document_id=? AND status='needs_review' "
+                'ORDER BY rowid DESC LIMIT 1', (document_id,)).fetchone()
+            if row_analysis is None or row_analysis['id'] != payload.get('analysis_id'):
+                raise ReviewConflict('Analisis terbaru berbeda atau belum tersedia. Muat ulang dokumen.')
+            document = dict(row, extraction=json.loads(row['extraction']))
+            document['source_integrity'] = self.source_integrity(document)
+            analysis = dict(row_analysis, result=json.loads(row_analysis['result']))
+            status, details = assess_review(document, analysis, payload)
+            record = {'id': str(uuid4()), 'analysis_id': analysis['id'], 'created_at': now(),
+                      'status': status, 'details': json.dumps(details, ensure_ascii=False)}
+            db.execute('INSERT INTO analysis_reviews VALUES '
+                       '(:id,:analysis_id,:created_at,:status,:details)', record)
+        return dict(record, details=details)
