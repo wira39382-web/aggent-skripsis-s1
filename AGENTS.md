@@ -1,7 +1,7 @@
 # Petunjuk pengembangan
 
 - Baca README.md dan docs/alur-agent-skripsi.mmd sebelum mengubah cakupan.
-- Setup awal: Python >=3.11; tidak ada dependency eksternal saat ini.
+- Setup awal: Python >=3.11; pasang dependency dengan `python -m pip install -r requirements.txt` dalam virtual environment.
 - Test: `python3 -m unittest discover -s tests -v`.
 - Startup: `python3 app.py --port 8000` (localhost).
 - Tambahkan dependency secara eksplisit beserta instruksi instalasi bila dibutuhkan.

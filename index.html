@@ -1,17 +1,24 @@
 <!doctype html>
 <html lang="id">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Asisten Skripsi S1</title>
-<style>
-body{font:16px/1.6 system-ui,sans-serif;background:#f4f6f3;color:#183329;margin:0}main{max-width:760px;margin:64px auto;padding:24px}h1{font-size:36px;line-height:1.2}section{background:white;padding:24px;border:1px solid #d9e2dc;border-radius:14px;margin:20px 0}label{display:block;font-weight:600}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #9cac9f;border-radius:7px;font:inherit;margin:8px 0 16px}button{background:#175d45;color:white;border:0;border-radius:7px;padding:12px 20px;font:inherit;cursor:pointer}button:disabled{opacity:.5}small{color:#4d6659}li{padding:8px 0}#message{color:#914300}
-</style>
-<main><small>FONDASI APLIKASI · VERSI 0.1</small><h1>Asisten Skripsi S1</h1>
-<p>Mulai dengan menyimpan proyek penelitianmu. Analisis jurnal dan pengolahan data akan ditambahkan pada tahap berikutnya.</p>
-<section><h2>Proyek penelitian</h2><form id="form"><label for="title">Judul atau topik sementara</label><input id="title" name="title" maxlength="200" required placeholder="Contoh: Kepercayaan konsumen terhadap iklan AI"><button id="save">Simpan proyek</button></form><p id="message" role="status"></p><ul id="projects"></ul></section>
-<section><h2>Status kemampuan</h2><ul><li>Penyimpanan proyek: tersedia di komputer ini.</li><li>Pembacaan PDF dan pencarian jurnal: belum tersedia.</li><li>Model AI: belum dikonfigurasi.</li><li>Analisis data dan ekspor skripsi: belum tersedia.</li></ul><small>Prototipe lokal, belum untuk layanan publik atau data responden sensitif.</small></section></main>
-<script>
-const form=document.getElementById('form'), list=document.getElementById('projects'), message=document.getElementById('message'), save=document.getElementById('save');
-async function refresh(){const response=await fetch('/api/projects');if(!response.ok)throw Error('Gagal membaca proyek.');const data=await response.json();list.replaceChildren();for(const project of data.projects){const li=document.createElement('li');li.textContent=project.title;list.append(li);}if(!data.projects.length){const li=document.createElement('li');li.textContent='Belum ada proyek.';list.append(li);}}
-form.addEventListener('submit',async event=>{event.preventDefault();save.disabled=true;message.textContent='';try{const response=await fetch('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:document.getElementById('title').value})});const data=await response.json();if(!response.ok)throw Error(data.error);form.reset();await refresh();message.textContent='Proyek tersimpan.';}catch(error){message.textContent=error.message;}finally{save.disabled=false;}});
-refresh().catch(error=>message.textContent=error.message);
-</script></html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ruang Skripsi · Pembacaan Jurnal</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a class="brand" href="/">rs<span>Ruang Skripsi<small>ASISTEN PENELITIAN S1</small></span></a><span class="local-badge">Penyimpanan lokal</span></header>
+<main>
+<div class="intro"><div><p class="eyebrow">01 / FONDASI PENELITIAN</p><h1>Baca sumbernya.<br>Bangun argumennya.</h1><p>Simpan jurnal, telusuri teks per halaman, dan tinjau analisis dengan bukti yang dapat diperiksa.</p></div><aside class="scope"><b>Ruang kerja literatur</b><p>Proyek → PDF → pembacaan → analisis satu jurnal</p><small>Hasil adalah bahan tinjauan, bukan persetujuan akademik.</small></aside></div>
+<p id="message" role="status" aria-live="polite"></p>
+<div class="workspace">
+<aside class="sidebar">
+<section><p class="eyebrow">PROYEK PENELITIAN</p><form id="project-form"><label for="title">Judul atau topik sementara</label><input id="title" maxlength="200" required placeholder="Topik penelitian Anda"><button id="save-project" type="submit">+ Buat proyek</button></form><div id="projects" class="item-list" aria-label="Daftar proyek"></div></section>
+<section id="upload-section" hidden><p class="eyebrow">DOKUMEN JURNAL</p><h2 id="project-title"></h2><form id="upload-form"><label for="pdf">Tambahkan PDF jurnal</label><input type="file" id="pdf" accept=".pdf,application/pdf" required><small>Maks. 15 MiB · 100 halaman. PDF asli disimpan; teks hasil pindai memerlukan OCR.</small><button id="upload" type="submit">Unggah & baca PDF</button></form><div id="documents" class="item-list" aria-label="Daftar dokumen"></div></section>
+<div class="sidebar-note"><b>Mulai dari bukti.</b><p>Pencarian jurnal, statistik, dan penulisan skripsi belum termasuk tahap ini.</p></div>
+</aside>
+<div class="content">
+<section id="empty" class="empty"><span class="book-icon" aria-hidden="true">▤</span><h2>Satu jurnal, dibaca dengan teliti.</h2><p>Buat atau pilih proyek, lalu unggah PDF untuk melihat teks dan lokasi buktinya.</p><div class="steps"><span>01 <b>Simpan proyek</b></span><span>02 <b>Baca PDF</b></span><span>03 <b>Tinjau bukti</b></span></div></section>
+<article id="document" hidden>
+<section class="document-head"><p class="eyebrow">SUMBER / PEMBACAAN DOKUMEN</p><h2 id="document-title"></h2><p id="document-meta" class="muted"></p><div class="toolbar"><span id="extraction-status" class="badge"></span><a id="original" class="button secondary" download>Unduh PDF asli</a></div><details><summary>Identitas & integritas sumber</summary><p id="checksum" class="hash"></p><small>Nomor halaman di aplikasi adalah urutan halaman PDF. Nomor halaman tercetak belum dipetakan. Metadata penerbit dan dukungan makna klaim belum diverifikasi.</small></details></section>
+<section class="reader"><div class="section-heading"><div><p class="eyebrow">TEKS SUMBER</p><h2>Pembacaan per halaman</h2></div><label for="page">Halaman PDF <select id="page"></select></label></div><p id="page-message" class="notice" hidden></p><pre id="page-text" tabindex="0"></pre><small>Tata letak tabel dan urutan kolom dapat berubah saat ekstraksi. Bandingkan dengan PDF asli.</small></section>
+<section class="analysis"><div class="section-heading"><div><p class="eyebrow">ANALISIS SATU JURNAL</p><h2>Dari teks menjadi catatan bukti</h2></div><span id="ai-status" class="badge">Memeriksa AI…</span></div><p id="ai-message" class="notice"></p><p>Tujuan, metode, sampel, temuan, dan keterbatasan. Setiap klaim memerlukan kutipan dan halaman; informasi yang tidak terbaca tidak akan diisi sebagai hasil.</p><label class="consent"><input id="consent" type="checkbox"> Saya mengizinkan teks jurnal dikirim ke OpenAI untuk analisis.</label><button id="analyze" disabled>Analisis jurnal</button><p id="analysis-progress" role="status"></p><div id="analysis-results"></div><details id="history-panel" hidden><summary>Riwayat analisis</summary><div id="history"></div></details></section>
+</article>
+</div></div>
+<footer>Prototipe pengembangan lokal · PDF, database, dan kunci API tidak masuk Git. OCR dan pemeriksaan semantik otomatis belum tersedia.</footer>
+</main></body></html>

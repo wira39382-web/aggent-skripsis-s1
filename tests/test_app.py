@@ -1,9 +1,11 @@
 import json
+import os
 import tempfile
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from app import ProjectStore, make_handler
@@ -11,6 +13,9 @@ from app import ProjectStore, make_handler
 
 class AppTests(unittest.TestCase):
     def setUp(self):
+        credentials = patch.dict(os.environ, {'SKRIPSI_AI_API_KEY': '', 'OPENAI_API_KEY': ''})
+        credentials.start()
+        self.addCleanup(credentials.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.path = Path(self.tmp.name) / 'projects.sqlite3'
         self.store = ProjectStore(self.path)
