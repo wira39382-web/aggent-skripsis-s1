@@ -30,3 +30,7 @@ Pemeriksaan tambahan pada Python 3.13.5 (Linux): 23 tes lulus dengan `-W error::
 ## Penerapan kode berdasarkan revisi 6
 
 Setelah audit diagram, alur jurnal mendapat tinjauan manusia per bagian, pemeriksaan fingerprint ekstraksi/analisis, integritas berkas PDF, dan riwayat append-only. Suite diperluas menjadi 37 tes, lulus pada Python 3.12.14 dan 3.13.5 di Linux. Pemeriksaan browser juga lulus. Koneksi AI nyata tetap belum diuji; fixture memakai mock berlabel. Pemetaan kontrak, migrasi, dan batas kemampuan ada di [implementasi jurnal revisi 6](revisi6/implementasi-jurnal.md).
+
+## Dashboard dan proposal v0.3.0
+
+Suite diperluas menjadi 61 tes, lulus pada Python 3.12.14 dan 3.13.5 di Linux. Uji browser alur jurnal tetap lulus; uji browser workspace mencakup dashboard, penolakan server lama, proposal/pedoman, pemeriksaan struktur tanpa AI, temuan manual, tindak lanjut/persistensi, versi proposal sebelumnya, serta draf audit AI dengan mock. CLI versi 0.3.0 dan aset dashboard telah diperiksa pada server yang berjalan. Lihat [implementasi proposal](revisi6/implementasi-proposal.md) untuk cakupan dan keterbatasan; ini belum pengujian model AI nyata atau verifikasi akademik.

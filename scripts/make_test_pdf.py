@@ -1,4 +1,4 @@
-"""Generate an explicitly synthetic, two-page acceptance PDF without extra dependencies."""
+"""Generate explicitly synthetic journal/proposal/guideline PDFs without extra dependencies."""
 import argparse
 from pathlib import Path
 
@@ -11,6 +11,17 @@ TEST_PAGES = [
      'Findings: Study time was positively associated with test scores.',
      'This fixture intentionally contains no statement of limitations.'],
 ]
+
+
+PROPOSAL_PAGES = [
+    ['SYNTHETIC PROPOSAL - NOT REAL RESEARCH', 'BAB I PENDAHULUAN',
+     'Tujuan: Menguji hubungan persepsi kegunaan dan niat penggunaan dompet digital.',
+     'Pertanyaan penelitian belum merinci arah hipotesis.'],
+    ['BAB II TINJAUAN PUSTAKA', 'Teori dan definisi konstruk perlu dilacak ke sumber asli.'],
+    ['BAB III METODE PENELITIAN', 'Penelitian menggunakan survei potong lintang pada 120 mahasiswa.',
+     'Ukuran sampel dipilih berdasarkan ketersediaan responden.'],
+]
+GUIDE_PAGES = [['SYNTHETIC GUIDELINE - NOT A CAMPUS RULE', 'Proposal menjelaskan pertanyaan dan tujuan penelitian.']]
 
 
 def make_pdf(pages):
@@ -42,7 +53,8 @@ def make_pdf(pages):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--kind', choices=['journal', 'proposal', 'guideline'], default='journal')
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_bytes(make_pdf(TEST_PAGES))
+    args.output.write_bytes(make_pdf({'journal': TEST_PAGES, 'proposal': PROPOSAL_PAGES, 'guideline': GUIDE_PAGES}[args.kind]))
     print(f'PDF uji sintetis dibuat: {args.output}')

@@ -97,11 +97,16 @@ def request_model(key, model, pages):
         'claims kosong. Halaman kosong/gagal tidak membuktikan informasi tidak ada. '
         'Jangan mengisi keterbatasan menurut pendapat sendiri. Maksimal 5 klaim per bagian.'
     )
+    return request_structured(key, model, system, {'untrusted_document_pages': pages},
+                              schema(), 'journal_analysis')
+
+
+def request_structured(key, model, system, inputs, output_schema, name, max_tokens=6000):
     payload = {'model': model, 'messages': [{'role': 'system', 'content': system},
-               {'role': 'user', 'content': json.dumps({'untrusted_document_pages': pages}, ensure_ascii=False)}],
-               'max_completion_tokens': 6000,
+               {'role': 'user', 'content': json.dumps(inputs, ensure_ascii=False)}],
+               'max_completion_tokens': max_tokens,
                'response_format': {'type': 'json_schema', 'json_schema': {
-                   'name': 'journal_analysis', 'strict': True, 'schema': schema()}}}
+                   'name': name, 'strict': True, 'schema': output_schema}}}
     request = Request('https://api.openai.com/v1/chat/completions',
                       data=json.dumps(payload).encode(),
                       headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
@@ -120,7 +125,7 @@ def request_model(key, model, pages):
         raise AnalysisError(f'Penyedia AI merespons HTTP {error.code}. Periksa kredensial, model, atau kuota di server.') from None
     except (URLError, TimeoutError, OSError):
         raise AnalysisError('Koneksi AI gagal atau melewati batas waktu; coba kembali setelah diperiksa.') from None
-    except (ValueError, KeyError, IndexError, TypeError):
+    except (ValueError, KeyError, IndexError, TypeError, AttributeError):
         raise AnalysisError('Jawaban penyedia AI tidak dapat dibaca; tidak ada hasil diterima.') from None
 
 

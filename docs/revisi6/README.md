@@ -1,6 +1,6 @@
 # Alur agent skripsi kuantitatif — revisi 6
 
-Revisi ini memperkuat diagram revisi 5 sebagai **spesifikasi tujuan produk**, bukan klaim bahwa semua modul sudah diimplementasikan. Aplikasi saat ini mencakup proyek, PDF, teks per halaman, integrasi analisis satu jurnal, serta tinjauan manusia yang terikat pada versi hasil/sumber. Lihat [pemetaan implementasi jurnal](implementasi-jurnal.md) untuk membedakan kemampuan yang tersedia dan rencana berikutnya.
+Revisi ini memperkuat diagram revisi 5 sebagai **spesifikasi tujuan produk**, bukan klaim bahwa semua modul sudah diimplementasikan. Aplikasi v0.3.0 mencakup dashboard, proyek, PDF, teks per halaman, analisis/tinjauan jurnal, serta pemeriksaan struktur dan draf audit proposal dengan daftar revisi. Lihat [implementasi jurnal](implementasi-jurnal.md) dan [implementasi proposal](implementasi-proposal.md) untuk membedakan kemampuan yang tersedia dan rencana berikutnya.
 
 Tujuannya ialah menghasilkan pekerjaan yang dapat dilacak, diperiksa, diulang, dan dipertanggungjawabkan. Diagram tidak menjamin nilai, persetujuan pembimbing, orisinalitas absolut, atau kebenaran metodologis otomatis.
 

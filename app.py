@@ -11,11 +11,16 @@ from urllib.parse import unquote, urlsplit
 from analysis import AnalysisError, ai_status, analyze
 from storage import ProjectStore
 from reviews import ReviewConflict
+from proposal import audit_proposal, manifest
+
+APP_VERSION = '0.3.0'
 
 MAX_UPLOAD = 15 * 1024 * 1024
 WORKERS = threading.BoundedSemaphore(2)
 ASSETS = {'/': ('index.html', 'text/html; charset=utf-8'),
           '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
+          '/journal.js': ('journal.js', 'text/javascript; charset=utf-8'),
+          '/proposal-ui.js': ('proposal-ui.js', 'text/javascript; charset=utf-8'),
           '/style.css': ('style.css', 'text/css; charset=utf-8')}
 
 
@@ -128,12 +133,19 @@ def make_handler(store):
                 filename, content_type = ASSETS[path]
                 return self.send_bytes(200, Path(__file__).with_name(filename).read_bytes(), content_type)
             if path == '/api/health':
-                return self.reply(200, {'status': 'ok', 'stage': 'journal_reading',
+                return self.reply(200, {'status': 'ok', 'stage': 'proposal_workspace', 'version': APP_VERSION,
                                        'ai_status': ai_status()['status'], 'max_upload_bytes': MAX_UPLOAD})
             if path == '/api/ai/status':
                 return self.reply(200, ai_status())
             if path == '/api/projects':
                 return self.reply(200, {'projects': store.list()})
+            match = re.fullmatch(r'/api/projects/([\w-]+)/(dashboard|issues)', path)
+            if match:
+                return self.reply(200, store.dashboard(match[1]) if match[2] == 'dashboard'
+                                  else {'issues': store.proposal_issues(match[1])})
+            match = re.fullmatch(r'/api/documents/([\w-]+)/proposal', path)
+            if match:
+                return self.reply(200, store.proposal_view(match[1]))
             match = re.fullmatch(r'/api/projects/([\w-]+)/documents', path)
             if match:
                 return self.reply(200, {'documents': store.documents(match[1])})
@@ -147,6 +159,35 @@ def make_handler(store):
         def post(self, path):
             if path == '/api/projects':
                 return self.reply(201, store.create(self.json_body().get('title')))
+            match = re.fullmatch(r'/api/issues/([\w-]+)/events', path)
+            if match:
+                return self.reply(201, store.update_proposal_issue(match[1], self.json_body(32768)))
+            match = re.fullmatch(r'/api/documents/([\w-]+)/proposal/issues', path)
+            if match:
+                return self.reply(201, store.add_proposal_issue(match[1], self.json_body(262144)))
+            match = re.fullmatch(r'/api/documents/([\w-]+)/proposal/audits', path)
+            if match:
+                payload = self.json_body(16384)
+                mode = payload.get('mode', 'structure')
+                if mode not in ('structure', 'ai'):
+                    raise ValueError('Mode harus structure atau ai.')
+                if mode == 'ai' and payload.get('consent') is not True:
+                    raise ApiError(400, 'Persetujuan mengirim proposal dan pedoman terpilih ke OpenAI diperlukan.')
+                document, guidelines = store.proposal_inputs(match[1], payload.get('guideline_ids', []))
+                if not WORKERS.acquire(blocking=False):
+                    raise ApiError(503, 'Pemrosesan sedang penuh. Coba kembali setelah selesai.')
+                try:
+                    try:
+                        status, result = audit_proposal(document, guidelines, mode)
+                    except AnalysisError as error:
+                        store.save_proposal_audit(document['id'], mode, 'failed', {
+                            'message': str(error), 'sources': manifest([document, *guidelines])})
+                        raise
+                    if status == 'not_configured':
+                        return self.reply(503, {'status': status, 'error': result['message']})
+                    return self.reply(201, store.save_proposal_audit(document['id'], mode, status, result))
+                finally:
+                    WORKERS.release()
             match = re.fullmatch(r'/api/documents/([\w-]+)/reviews', path)
             if match:
                 return self.reply(201, store.save_review(match[1], self.json_body(32768)))
@@ -163,7 +204,7 @@ def make_handler(store):
                     content = self.body(MAX_UPLOAD, 'application/pdf')
                     if not content.startswith(b'%PDF-'):
                         raise ApiError(400, 'Isi berkas bukan PDF yang valid.')
-                    document = store.add_document(match[1], filename, content)
+                    document = store.add_document(match[1], filename, content, self.headers.get('X-Document-Kind', 'journal'))
                 finally:
                     WORKERS.release()
                 return self.reply(201, document)
@@ -173,6 +214,8 @@ def make_handler(store):
                 if payload.get('consent') is not True:
                     raise ApiError(400, 'Persetujuan mengirim teks jurnal ke OpenAI diperlukan.')
                 document = store.document(match[1])
+                if document['kind'] != 'journal':
+                    raise ValueError('Gunakan audit proposal untuk proposal; analisis jurnal hanya menerima jurnal.')
                 if not WORKERS.acquire(blocking=False):
                     raise ApiError(503, 'Pemrosesan sedang penuh. Coba lagi setelah selesai.')
                 try:
@@ -199,7 +242,8 @@ def main():
     args = parser.parse_args()
     store = ProjectStore(args.data_dir / 'projects.sqlite3')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(store))
-    print(f'Asisten Skripsi berjalan pada port {args.port}; hanya akses lokal.', flush=True)
+    print(f'Ruang Skripsi v{APP_VERSION} — Dashboard & audit proposal, port {args.port}; hanya akses lokal.', flush=True)
+    print(f'Folder aplikasi: {Path(__file__).resolve().parent}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from pdf_reader import extract_pdf
+from proposal_store import ProposalStoreMixin, SCHEMA as PROPOSAL_SCHEMA
 from reviews import ReviewConflict, assess_review, review_state
 
 
@@ -15,7 +16,7 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
-class ProjectStore:
+class ProjectStore(ProposalStoreMixin):
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,6 +37,7 @@ class ProjectStore:
                     id TEXT PRIMARY KEY, analysis_id TEXT NOT NULL REFERENCES analyses(id),
                     created_at TEXT NOT NULL, status TEXT NOT NULL, details TEXT NOT NULL);
             ''')
+            db.executescript(PROPOSAL_SCHEMA)
 
     @contextmanager
     def connect(self):
@@ -72,11 +74,14 @@ class ProjectStore:
         self.project(project_id)
         with self.connect() as db:
             return [dict(row) for row in db.execute(
-                'SELECT id, project_id, filename, sha256, size, created_at, status FROM documents '
-                'WHERE project_id=? ORDER BY created_at DESC', (project_id,))]
+                "SELECT d.id, d.project_id, d.filename, d.sha256, d.size, d.created_at, d.status, COALESCE(r.kind,'journal') AS kind "
+                'FROM documents d LEFT JOIN document_roles r ON r.document_id=d.id '
+                'WHERE d.project_id=? ORDER BY d.rowid DESC', (project_id,))]
 
-    def add_document(self, project_id, filename, content):
+    def add_document(self, project_id, filename, content, kind='journal'):
         self.project(project_id)
+        if kind not in ('journal', 'proposal', 'guideline'):
+            raise ValueError('Jenis dokumen harus journal, proposal, atau guideline.')
         document_id = str(uuid4())
         path = self.files / (document_id + '.pdf')
         # No original filename is ever used as a filesystem path.
@@ -91,6 +96,7 @@ class ProjectStore:
             with self.connect() as db:
                 db.execute('INSERT INTO documents VALUES '
                            '(:id,:project_id,:filename,:sha256,:size,:created_at,:status,:extraction)', document)
+                db.execute('INSERT INTO document_roles VALUES (?,?)', (document_id, kind))
         except Exception:
             path.unlink(missing_ok=True)
             raise
@@ -99,7 +105,8 @@ class ProjectStore:
     def document(self, document_id):
         with self.connect() as db:
             db.execute('BEGIN')  # One consistent snapshot for source, analyses and reviews.
-            row = db.execute('SELECT * FROM documents WHERE id=?', (document_id,)).fetchone()
+            row = db.execute("SELECT d.*, COALESCE(r.kind,'journal') AS kind FROM documents d "
+                             'LEFT JOIN document_roles r ON r.document_id=d.id WHERE d.id=?', (document_id,)).fetchone()
             history = db.execute('SELECT * FROM analyses WHERE document_id=? ORDER BY rowid DESC',
                                  (document_id,)).fetchall()
             reviews = db.execute(

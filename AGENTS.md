@@ -12,3 +12,4 @@
 - Validasi modul statistik dengan hasil pembanding sebelum dinyatakan siap.
 - Jangan menganggap prototipe server ini siap dipublikasikan. Autentikasi, batas upload dan server produksi perlu dirancang sebelum deployment.
 - Implementasikan tahap berikutnya sebagai alur lengkap yang dapat diuji, bukan semua fitur sekaligus.
+- Dashboard/proposal: pemeriksaan heading lokal bukan audit mutu isi. Audit AI tetap draf; isu ditandai ditangani bukan berarti disetujui. Proposal terbaru aktif, riwayat sumber dan event harus dipertahankan.

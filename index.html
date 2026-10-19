@@ -1,24 +1,384 @@
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ruang Skripsi · Pembacaan Jurnal</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
-<body>
-<header><a class="brand" href="/">rs<span>Ruang Skripsi<small>ASISTEN PENELITIAN S1</small></span></a><span class="local-badge">Penyimpanan lokal</span></header>
-<main>
-<div class="intro"><div><p class="eyebrow">01 / FONDASI PENELITIAN</p><h1>Baca sumbernya.<br>Bangun argumennya.</h1><p>Simpan jurnal, telusuri teks per halaman, dan tinjau analisis dengan bukti yang dapat diperiksa.</p></div><aside class="scope"><b>Ruang kerja literatur</b><p>Proyek → PDF → pembacaan → analisis satu jurnal</p><small>Hasil adalah bahan tinjauan, bukan persetujuan akademik.</small></aside></div>
-<p id="message" role="status" aria-live="polite"></p>
-<div class="workspace">
-<aside class="sidebar">
-<section><p class="eyebrow">PROYEK PENELITIAN</p><form id="project-form"><label for="title">Judul atau topik sementara</label><input id="title" maxlength="200" required placeholder="Topik penelitian Anda"><button id="save-project" type="submit">+ Buat proyek</button></form><div id="projects" class="item-list" aria-label="Daftar proyek"></div></section>
-<section id="upload-section" hidden><p class="eyebrow">DOKUMEN JURNAL</p><h2 id="project-title"></h2><form id="upload-form"><label for="pdf">Tambahkan PDF jurnal</label><input type="file" id="pdf" accept=".pdf,application/pdf" required><small>Maks. 15 MiB · 100 halaman. PDF asli disimpan; teks hasil pindai memerlukan OCR.</small><button id="upload" type="submit">Unggah & baca PDF</button></form><div id="documents" class="item-list" aria-label="Daftar dokumen"></div></section>
-<div class="sidebar-note"><b>Mulai dari bukti.</b><p>Pencarian jurnal, statistik, dan penulisan skripsi belum termasuk tahap ini.</p></div>
-</aside>
-<div class="content">
-<section id="empty" class="empty"><span class="book-icon" aria-hidden="true">▤</span><h2>Satu jurnal, dibaca dengan teliti.</h2><p>Buat atau pilih proyek, lalu unggah PDF untuk melihat teks dan lokasi buktinya.</p><div class="steps"><span>01 <b>Simpan proyek</b></span><span>02 <b>Baca PDF</b></span><span>03 <b>Tinjau bukti</b></span></div></section>
-<article id="document" hidden>
-<section class="document-head"><p class="eyebrow">SUMBER / PEMBACAAN DOKUMEN</p><h2 id="document-title"></h2><p id="document-meta" class="muted"></p><div class="toolbar"><span id="extraction-status" class="badge"></span><a id="original" class="button secondary" download>Unduh PDF asli</a></div><details><summary>Identitas & integritas sumber</summary><p id="checksum" class="hash"></p><small>Nomor halaman di aplikasi adalah urutan halaman PDF. Nomor halaman tercetak belum dipetakan. Metadata penerbit dan dukungan makna klaim belum diverifikasi.</small></details></section>
-<section class="reader"><div class="section-heading"><div><p class="eyebrow">TEKS SUMBER</p><h2>Pembacaan per halaman</h2></div><label for="page">Halaman PDF <select id="page"></select></label></div><p id="page-message" class="notice" hidden></p><pre id="page-text" tabindex="0"></pre><small>Tata letak tabel dan urutan kolom dapat berubah saat ekstraksi. Bandingkan dengan PDF asli.</small></section>
-<section class="analysis"><div class="section-heading"><div><p class="eyebrow">ANALISIS SATU JURNAL</p><h2>Dari teks menjadi catatan bukti</h2></div><span id="ai-status" class="badge">Memeriksa AI…</span></div><p id="ai-message" class="notice"></p><p>Tujuan, metode, sampel, temuan, dan keterbatasan. Setiap klaim memerlukan kutipan dan halaman; informasi yang tidak terbaca tidak akan diisi sebagai hasil.</p><label class="consent"><input id="consent" type="checkbox"> Saya mengizinkan teks jurnal dikirim ke OpenAI untuk analisis.</label><button id="analyze" disabled>Analisis jurnal</button><p id="analysis-progress" role="status"></p><div id="analysis-results"></div><details id="history-panel" hidden><summary>Riwayat analisis</summary><div id="history"></div></details></section>
-</article>
-</div></div>
-<footer>Prototipe pengembangan lokal · PDF, database, dan kunci API tidak masuk Git. OCR dan pemeriksaan semantik otomatis belum tersedia.</footer>
-</main></body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ruang Skripsi · Dashboard Penelitian</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+    <script src="/journal.js" defer></script>
+    <script src="/proposal-ui.js" defer></script>
+  </head>
+  <body>
+    <aside class="app-sidebar">
+      <a class="brand" href="/"
+        >rs<span>Ruang Skripsi<small>RUANG KERJA PENELITIAN</small></span></a
+      >
+      <p class="nav-label">RUANG KERJA</p>
+      <nav aria-label="Navigasi utama">
+        <button id="nav-dashboard" data-view="dashboard" aria-pressed="true">
+          <span>◫</span> Ringkasan</button
+        ><button id="nav-proposal" data-view="proposal" aria-pressed="false">
+          <span>▤</span> Proposal & audit</button
+        ><button
+          id="nav-literature"
+          data-view="literature"
+          aria-pressed="false"
+        >
+          <span>▥</span> Literatur</button
+        ><button id="nav-revisions" data-view="revisions" aria-pressed="false">
+          <span>☷</span> Daftar revisi
+          <span id="nav-issue-count" class="count">0</span>
+        </button>
+      </nav>
+      <div class="sidebar-divider"></div>
+      <p class="nav-label">PROYEK PENELITIAN</p>
+      <div id="projects" class="project-list"></div>
+      <details id="new-project" open>
+        <summary>+ Proyek baru</summary>
+        <form id="project-form">
+          <label for="title">Judul atau topik sementara</label
+          ><textarea
+            id="title"
+            maxlength="200"
+            required
+            rows="2"
+            placeholder="Topik penelitian Anda"
+          ></textarea
+          ><button id="save-project" type="submit">+ Buat proyek</button>
+        </form>
+      </details>
+      <div class="sidebar-bottom">
+        <span class="status-dot"></span> Penyimpanan lokal<small
+          >Dokumen dan database disimpan di komputer ini.</small
+        ><b id="app-version">Memeriksa versi server…</b>
+      </div>
+    </aside>
+    <main class="app-main">
+      <header class="workspace-header">
+        <div>
+          <p class="eyebrow">
+            RUANG SKRIPSI / <span id="view-label">RINGKASAN</span>
+          </p>
+          <h1 id="project-name">Dari pertanyaan menjadi penelitian.</h1>
+          <p id="project-subtitle">
+            Buat proyek untuk menyimpan sumber, memeriksa proposal, dan
+            menindaklanjuti revisi.
+          </p>
+        </div>
+        <span class="badge outline">DRAF UNTUK DITINJAU</span>
+      </header>
+      <div id="capability-status" class="capability-bar" role="status">
+        Memeriksa kemampuan aplikasi…
+      </div>
+      <p id="message" role="status" aria-live="polite"></p>
+      <section id="view-dashboard" class="view">
+        <div class="stat-grid">
+          <article class="stat-card">
+            <span>Proposal tersimpan</span><strong id="stat-proposal">0</strong
+            ><small>Versi sumber tetap dipertahankan</small>
+          </article>
+          <article class="stat-card">
+            <span>Jurnal penelitian</span><strong id="stat-journal">0</strong
+            ><small>Baca dan telusuri bukti</small>
+          </article>
+          <article class="stat-card">
+            <span>Revisi aktif</span><strong id="stat-issues">0</strong
+            ><small id="stat-addressed">Belum ada tindak lanjut</small>
+          </article>
+          <article class="stat-card">
+            <span>Status AI</span
+            ><strong id="stat-ai" class="stat-word">Belum diperiksa</strong
+            ><small>Audit struktur tetap dapat digunakan</small>
+          </article>
+        </div>
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">PETA PENELITIAN</p>
+            <h2>Kerjakan tahap yang dibutuhkan.</h2>
+          </div>
+          <span class="muted">Tujuan alur · revisi 6</span>
+        </div>
+        <div class="phase-grid">
+          <button class="phase current" data-view="dashboard">
+            <span>01</span><b>Proyek & inventaris</b
+            ><small>Tersedia</small></button
+          ><button class="phase" data-view="literature">
+            <span>02</span><b>Literatur & bukti</b
+            ><small>Tersedia</small></button
+          ><button class="phase" data-view="proposal">
+            <span>03</span><b>Proposal & audit</b
+            ><small>Tersedia</small></button
+          ><button class="phase future" disabled data-unavailable="true">
+            <span>04</span><b>Data & statistik</b
+            ><small>Belum tersedia</small></button
+          ><button class="phase future" disabled data-unavailable="true">
+            <span>05</span><b>Naskah & sidang</b><small>Belum tersedia</small>
+          </button>
+        </div>
+        <div class="dashboard-columns">
+          <article class="next-card">
+            <p class="eyebrow">LANGKAH BERIKUTNYA</p>
+            <h2 id="next-title">Mulai dari proyek penelitian.</h2>
+            <p id="next-action">
+              Simpan topik atau judul sementara. Anda tidak perlu memiliki
+              proposal lengkap untuk memulai.
+            </p>
+            <div class="toolbar">
+              <button id="start-proposal">Unggah proposal</button
+              ><button class="secondary" data-view="literature">
+                Tambahkan jurnal
+              </button>
+            </div>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">KENDALI MUTU</p>
+            <h2>Bukti sebelum kesimpulan.</h2>
+            <ul class="quality-list">
+              <li>Kutipan selalu memiliki halaman sumber.</li>
+              <li>Informasi yang kurang diberi status belum dapat dinilai.</li>
+              <li>Temuan yang ditangani tetap memerlukan pemeriksaan ulang.</li>
+            </ul>
+            <small
+              >Status aplikasi bukan persetujuan pembimbing atau kelayakan
+              sidang.</small
+            >
+          </article>
+        </div>
+        <article class="panel">
+          <div class="section-title">
+            <h2>Proposal & dokumen terbaru</h2>
+            <button class="text-button" data-view="proposal">
+              Lihat ruang proposal →
+            </button>
+          </div>
+          <div id="recent-documents" class="recent-documents">
+            <p class="muted">Belum ada proyek dipilih.</p>
+          </div>
+        </article>
+      </section>
+      <section id="view-library" class="view" hidden>
+        <div class="library-top">
+          <article class="panel upload-panel">
+            <p class="eyebrow" id="library-eyebrow">PROPOSAL & PEDOMAN</p>
+            <h2 id="library-title">Tambahkan sumber penelitian.</h2>
+            <form id="upload-form">
+              <label for="document-kind">Jenis dokumen</label
+              ><select id="document-kind">
+                <option value="proposal">Proposal penelitian</option>
+                <option value="guideline">Pedoman kampus</option>
+                <option value="journal">Jurnal</option></select
+              ><label for="pdf">Pilih PDF</label
+              ><input
+                type="file"
+                id="pdf"
+                accept=".pdf,application/pdf"
+                required
+              /><small
+                >Maks. 15 MiB · 100 halaman. Unggahan proposal terbaru menjadi
+                proposal aktif; versi sebelumnya tetap tersimpan.</small
+              ><button id="upload" type="submit">Unggah & baca PDF</button>
+            </form>
+          </article>
+          <article class="panel collection-panel">
+            <p class="eyebrow">ARSIP SUMBER</p>
+            <h2 id="collection-title">Proposal dan pedoman</h2>
+            <div id="documents" class="document-list"></div>
+          </article>
+        </div>
+        <article id="document" hidden>
+          <section class="panel document-head">
+            <p class="eyebrow" id="document-kind-label">PEMBACAAN SUMBER</p>
+            <div class="section-title">
+              <h2 id="document-title"></h2>
+              <a id="original" class="button secondary" download
+                >Unduh PDF asli</a
+              >
+            </div>
+            <p id="document-meta" class="muted"></p>
+            <span id="extraction-status" class="badge"></span>
+            <details>
+              <summary>Identitas & integritas sumber</summary>
+              <p id="checksum" class="hash"></p>
+              <small
+                >Nomor halaman adalah urutan fisik PDF, bukan nomor tercetak.
+                Kecocokan kutipan tidak membuktikan dukungan makna.</small
+              >
+            </details>
+          </section>
+          <div class="document-columns">
+            <section class="panel reader">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">TEKS SUMBER</p>
+                  <h2>Pembacaan per halaman</h2>
+                </div>
+                <label for="page">Halaman PDF<select id="page"></select></label>
+              </div>
+              <p id="page-message" class="notice" hidden></p>
+              <pre id="page-text" tabindex="0"></pre>
+              <small
+                >Bandingkan urutan kolom, tabel, dan angka dengan PDF
+                asli.</small
+              >
+            </section>
+            <div class="inspection-column">
+              <section id="journal-panel" class="panel" hidden>
+                <div class="section-title">
+                  <div>
+                    <p class="eyebrow">JURNAL</p>
+                    <h2>Analisis satu jurnal</h2>
+                  </div>
+                  <span id="ai-status" class="badge">Memeriksa AI…</span>
+                </div>
+                <p id="ai-message" class="notice"></p>
+                <label class="consent"
+                  ><input id="consent" type="checkbox" /> Saya mengizinkan teks
+                  jurnal dikirim ke OpenAI untuk analisis.</label
+                ><button id="analyze" disabled>Analisis jurnal</button>
+                <p id="analysis-progress" role="status"></p>
+                <div id="analysis-results"></div>
+                <details id="history-panel" hidden>
+                  <summary>Riwayat analisis</summary>
+                  <div id="history"></div>
+                </details>
+              </section>
+              <section id="proposal-panel" class="panel" hidden>
+                <p class="eyebrow">AUDIT PROPOSAL / BAB I–III</p>
+                <h2>Periksa arah, metode, dan buktinya.</h2>
+                <p id="proposal-active-notice" class="notice"></p>
+                <button id="structure-audit" class="secondary">
+                  Periksa struktur tanpa AI
+                </button>
+                <div id="proposal-outline" class="outline"></div>
+                <details>
+                  <summary>Pedoman yang disertakan dalam audit</summary>
+                  <div id="guideline-options"></div>
+                  <small
+                    >Tanpa pedoman, kepatuhan kampus tetap belum dapat dinilai.
+                    Hanya sumber yang dipilih dikirim.</small
+                  >
+                </details>
+                <label class="consent"
+                  ><input id="proposal-consent" type="checkbox" /> Saya
+                  mengizinkan teks proposal dan pedoman terpilih dikirim ke
+                  OpenAI.</label
+                ><button id="proposal-ai-audit" disabled>
+                  Audit substantif dengan AI
+                </button>
+                <p id="proposal-progress" role="status"></p>
+                <div id="proposal-checks"></div>
+                <details id="manual-finding">
+                  <summary>+ Catat temuan manual dengan bukti</summary>
+                  <form id="finding-form">
+                    <small
+                      >Untuk kriteria yang sama, catatan berikutnya memperbarui
+                      temuan manual dan menambah riwayatnya.</small
+                    >
+                    <label for="finding-criterion">Kriteria</label
+                    ><select id="finding-criterion"></select
+                    ><label for="finding-severity">Tingkat masalah</label
+                    ><select id="finding-severity">
+                      <option value="major">Mayor</option>
+                      <option value="critical">Kritis</option>
+                      <option value="minor">Minor</option></select
+                    ><label for="finding-summary">Temuan dan akibatnya</label
+                    ><textarea
+                      id="finding-summary"
+                      required
+                      maxlength="2500"
+                    ></textarea
+                    ><label for="finding-recommendation"
+                      >Tindak lanjut yang dapat diperiksa</label
+                    ><textarea
+                      id="finding-recommendation"
+                      required
+                      maxlength="2500"
+                    ></textarea>
+                    <div class="form-row">
+                      <div>
+                        <label for="finding-page">Halaman PDF proposal</label
+                        ><input
+                          id="finding-page"
+                          type="number"
+                          min="1"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label for="finding-actor">Nama pencatat</label
+                        ><input id="finding-actor" required maxlength="100" />
+                      </div>
+                    </div>
+                    <label for="finding-quote"
+                      >Kutipan persis dari proposal (12–2.000 karakter)</label
+                    ><textarea
+                      id="finding-quote"
+                      required
+                      minlength="12"
+                      maxlength="2000"
+                    ></textarea>
+                    <details>
+                      <summary>
+                        Bukti aturan pedoman (wajib untuk temuan kepatuhan)
+                      </summary>
+                      <label for="finding-guideline">Sumber pedoman</label
+                      ><select id="finding-guideline"></select
+                      ><label for="finding-guideline-page"
+                        >Halaman PDF pedoman</label
+                      ><input
+                        id="finding-guideline-page"
+                        type="number"
+                        min="1"
+                      /><label for="finding-guideline-quote"
+                        >Kutipan persis dari pedoman</label
+                      ><textarea
+                        id="finding-guideline-quote"
+                        maxlength="2000"
+                      ></textarea>
+                    </details>
+                    <button type="submit">Simpan temuan manual</button>
+                  </form>
+                </details>
+                <details>
+                  <summary>Riwayat audit proposal</summary>
+                  <div id="proposal-history"></div>
+                </details>
+              </section>
+              <section id="guideline-panel" class="panel" hidden>
+                <p class="eyebrow">PEDOMAN KAMPUS</p>
+                <h2>Periksa aturan dari sumbernya.</h2>
+                <p>
+                  Dokumen ini bisa dipilih saat mengaudit proposal pada proyek
+                  yang sama. Keberadaan pedoman tidak otomatis membuktikan
+                  seluruh aturan telah diterapkan.
+                </p>
+              </section>
+            </div>
+          </div>
+        </article>
+      </section>
+      <section id="view-revisions" class="view" hidden>
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">TINDAK LANJUT</p>
+            <h2>Daftar revisi proposal</h2>
+          </div>
+          <label class="consent compact"
+            ><input id="include-old-issues" type="checkbox" /> Tampilkan riwayat
+            versi lama</label
+          >
+        </div>
+        <p class="notice">
+          “Sudah ditangani” adalah catatan tindak lanjut, bukan verifikasi
+          penyelesaian atau persetujuan pembimbing.
+        </p>
+        <div id="revision-list"></div>
+      </section>
+      <footer>
+        Ruang kerja lokal · Dokumen asli dan riwayat dipertahankan · OCR,
+        statistik, dan pengesahan akademik otomatis belum tersedia.
+      </footer>
+    </main>
+  </body>
+</html>

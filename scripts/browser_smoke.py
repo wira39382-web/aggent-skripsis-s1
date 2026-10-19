@@ -36,7 +36,8 @@ def main():
                     title = '<img src=x onerror=alert(1)>'
                     page.get_by_label('Judul atau topik sementara').fill(title)
                     page.get_by_role('button', name='+ Buat proyek').click()
-                    page.get_by_label('Tambahkan PDF jurnal').set_input_files({
+                    page.locator('#nav-literature').click()
+                    page.get_by_label('Pilih PDF').set_input_files({
                         'name': 'synthetic.pdf', 'mimeType': 'application/pdf', 'buffer': make_pdf(TEST_PAGES)})
                     page.get_by_role('button', name='Unggah & baca PDF').click()
                     page.get_by_role('heading', name='synthetic.pdf', exact=True).wait_for()
@@ -63,6 +64,7 @@ def main():
                     expect(page.locator('.review-panel .notice')).to_have_text('Tinjauan tercatat pada teks terbaca')
                     page.reload()
                     page.get_by_role('button', name=title, exact=True).click()
+                    page.locator('#nav-literature').click()
                     page.get_by_role('button', name='synthetic.pdf', exact=False).click()
                     expect(page.locator('#analysis-results')).to_contain_text('MOCK-TEST-NOT-REAL-AI')
                     expect(page.locator('.review-panel .notice')).to_have_text('Tinjauan tercatat pada teks terbaca')
@@ -77,6 +79,7 @@ def main():
                     original.write_bytes(original.read_bytes().replace(b'Purpose:', b'Changed:', 1))
                     page.reload()
                     page.get_by_role('button', name=title, exact=True).click()
+                    page.locator('#nav-literature').click()
                     page.get_by_role('button', name='synthetic.pdf', exact=False).click()
                     expect(page.locator('.review-panel .notice')).to_have_text('Versi sumber belum cocok; analisis ulang')
                     expect(page.locator('#human-review-form')).to_have_count(0)
